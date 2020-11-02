@@ -1,0 +1,20 @@
+{
+  "name": "me-stat",
+  "version": "1.0.0",
+  "description": "static files for me.yanke.ru",
+  "main": "index.js",
+  "scripts": {
+    "start": "ttags && npm run html",
+    "post": "ttags post",
+    "deploy": "gh-pages -d html",
+    "html": "node ./index.js",
+    "update": "npm start && npm run deploy"
+  },
+  "devDependencies": {
+    "gh-pages": "^3.1.0",
+    "tumblr-tags": "^1.0.2"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
