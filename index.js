@@ -1,6 +1,34 @@
 const fs = require('fs');
 const tags = require('./dist/tags.json');
 
-const content = tags.map(tag => ([tag.tag, tag.count]))
 
-fs.writeFileSync('./html/tags.js', `var meTags=${JSON.stringify(content)}`, 'utf-8')
+const getFirstLetter = (tag) => tag.charAt(0).toLowerCase()
+const isCyrillicLetter = (str) => /[а-яё]/i.test(str)
+
+const tagsSortedByCount = tags.slice().sort((a, b) => b.count - a.count)
+const maxTagCount = tagsSortedByCount[0]?.count || 0
+const minTagCount = tagsSortedByCount[tagsSortedByCount.length - 1]?.count || 0
+
+const normalizedByFirstLetter = tags.reduce((acc, tag) => {
+  const firstLetter = getFirstLetter(tag.tag)
+
+  if (!isCyrillicLetter(firstLetter)) {
+    return acc
+  }
+
+  if (  !acc[firstLetter]) {
+    acc[firstLetter] = []
+  }
+
+  acc[firstLetter].push([tag.tag, tag.count])
+
+  return acc
+},{})
+
+const sortByCount = Object.entries(normalizedByFirstLetter).reduce((acc, [letter, tags]) => {
+  acc[letter] = tags.sort(([,aCount], [,bCount]) => bCount - aCount)
+
+  return acc
+},{})
+
+fs.writeFileSync('./html/tags.js', `var meStat=${JSON.stringify({maxTagCount,minTagCount,tags:sortByCount})}`, 'utf-8')
