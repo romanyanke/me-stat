@@ -32,4 +32,10 @@ const sortByCount = Object.entries(normalizedByFirstLetter).reduce((acc, [letter
   return acc
 },{})
 
-fs.writeFileSync('./html/tags.js', `var meStat=${JSON.stringify({totalTags,maxTagCount,minTagCount,tags:sortByCount})}`, 'utf-8')
+const sortByName = Object.entries(normalizedByFirstLetter).reduce((acc, [letter, tags]) => {
+  acc[letter] = tags.sort(([aName], [bName]) => aName.localeCompare(bName))
+
+  return acc
+},{})
+
+fs.writeFileSync('./html/tags.js', `var meStat=${JSON.stringify({totalTags,maxTagCount,minTagCount,tags:sortByName})}`, 'utf-8')
