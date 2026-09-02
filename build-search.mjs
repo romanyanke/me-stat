@@ -2,10 +2,10 @@
  * Собирает самодостаточную HTML-страницу поиска по комбинациям тегов.
  *
  * Usage:
- *   node build-search.mjs [output.html] [--previews]
+ *   node build-search.mjs [output.html] [--previews] [--combos-url <url>]
  *
- * --previews включает плитку с превью постов в айфреймах. Работает только там,
- * где нет строгого CSP (gh-pages); в Artifact на claude.ai frame-src запрещён.
+ * --previews включает плитку с превью постов. Работает только там, где нет
+ * строгого CSP (gh-pages); в Artifact на claude.ai внешние запросы запрещены.
  *
  * Источник: tmp/source.json ({tags: {имя: id}, posts: {postId: [id, ...]}}),
  * который генерится `ttags` (см. package.json).
@@ -13,12 +13,19 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
+import { load, boards } from './combos.mjs';
 
 const SOURCE = resolve(import.meta.dirname, 'tmp/source.json');
 const TEMPLATE = resolve(import.meta.dirname, 'search-template.html');
 const args = process.argv.slice(2);
 const PREVIEWS = args.includes('--previews');
-const target = args.find((a) => !a.startsWith('--'));
+
+// Рядом с search.html на gh-pages лежит combos.html; сборке в другое место
+// (например в Artifact) нужен полный адрес.
+const urlAt = args.indexOf('--combos-url');
+const COMBOS_URL = urlAt === -1 ? 'combos.html' : args[urlAt + 1];
+const skip = urlAt === -1 ? -1 : urlAt + 1;   // значение флага — не путь к файлу
+const target = args.find((a, i) => !a.startsWith('--') && i !== skip);
 const OUT = target
   ? resolve(target)
   : '/private/tmp/claude-501/-Users-romanyanke-localhost-me-stat/528fda0e-c5be-417c-acc3-caa7b7c6e50e/scratchpad/tag-search.html';
@@ -49,8 +56,17 @@ const data = {
   postTags,
 };
 
+// Подборка для пустого экрана: [[имена тегов], сколько постов]. Полный список
+// со всеми метриками живёт на отдельной странице (build-combos.mjs).
+const START_COMBOS = 300;
+const combos = boards(load(), START_COMBOS)
+  .find((b) => b.id === 'surprising')
+  .rows.map((r) => [r.names, r.c]);
+
 const html = readFileSync(TEMPLATE, 'utf8')
   .replace('__PREVIEWS__', String(PREVIEWS))
+  .replace('__COMBOS__', () => JSON.stringify(combos))
+  .replace('__COMBOS_URL__', COMBOS_URL)
   .replace(
   '__DATA__',
   // </script> внутри данных сломал бы страницу; имён с таким текстом нет, но дёшево подстраховаться.
@@ -61,4 +77,7 @@ writeFileSync(OUT, html, 'utf8');
 
 const kb = (html.length / 1024).toFixed(0);
 console.log(`${OUT}`);
-console.log(`${data.posts.length} постов, ${data.tags.length} тегов, ${kb} КБ, превью: ${PREVIEWS ? 'да' : 'нет'}`);
+console.log(
+  `${data.posts.length} постов, ${data.tags.length} тегов, ${combos.length} комбинаций, ` +
+    `${kb} КБ, превью: ${PREVIEWS ? 'да' : 'нет'}`
+);

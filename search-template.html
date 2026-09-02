@@ -552,6 +552,69 @@ button {
 
 .more:hover { border-color: var(--accent); color: var(--accent); }
 
+.start-intro {
+  margin: 0 0 16px;
+  max-width: 54ch;
+}
+
+.start-combos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-width: 640px;
+}
+
+.start-combo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+
+.start-combo:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.start-combo .op {
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+.start-combo .n {
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.start-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 16px;
+  margin: 18px 0 0;
+  font-size: var(--step--1);
+}
+
+.reshuffle {
+  padding: 5px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface);
+  font-size: var(--step--1);
+}
+
+.reshuffle:hover { border-color: var(--accent); color: var(--accent); }
+
+.all-combos { color: var(--accent); }
+
 .blank {
   padding: 34px 0;
   color: var(--muted);
@@ -610,6 +673,8 @@ button {
   "use strict";
 
   var DATA = __DATA__;
+  var COMBOS = __COMBOS__;   // неожиданные пары для пустого экрана
+  var COMBOS_URL = "__COMBOS_URL__";
   var POST_URL = "https://me.yanke.ru/post/";
   function page() { return PAGE_OF[view]; }
 
@@ -815,8 +880,7 @@ button {
     if (!active) {
       el.more.hidden = true;
       el.blank.hidden = false;
-      el.blank.innerHTML = "Начните с любого тега — например <b>Гамбург</b>. " +
-        "Дальше список справа покажет, какие теги встречаются внутри выборки и сколько постов останется.";
+      renderStart();
       return;
     }
 
@@ -869,6 +933,96 @@ button {
     el.more.hidden = matches.length <= shown;
     el.more.textContent = "Показать ещё " +
       Math.min(page(), matches.length - shown) + " из " + fmt(matches.length - shown);
+  }
+
+  /* ---------- пустой экран: с чего начать ---------- */
+
+  // Придумать сочетание с нуля тяжело, поэтому показываем посчитанные заранее
+  // находки — пары с высоким lift и низкой вложенностью (см. combos.mjs).
+  var SHOW_COMBOS = 12;
+
+  function renderStart() {
+    el.blank.textContent = "";
+
+    var intro = document.createElement("p");
+    intro.className = "start-intro";
+    intro.innerHTML = "Начните с любого тега — или возьмите готовое сочетание. " +
+      "Дальше список слева покажет, что встречается внутри выборки.";
+    el.blank.appendChild(intro);
+
+    if (!COMBOS.length) return;
+
+    var list = document.createElement("div");
+    list.className = "start-combos";
+    el.blank.appendChild(list);
+
+    var foot = document.createElement("p");
+    foot.className = "start-foot";
+
+    var more = document.createElement("button");
+    more.type = "button";
+    more.className = "reshuffle";
+    more.textContent = "Другие сочетания";
+    more.addEventListener("click", function () { fill(list); });
+    foot.appendChild(more);
+
+    var all = document.createElement("a");
+    all.href = COMBOS_URL;
+    all.className = "all-combos";
+    all.textContent = "Все интересные комбинации";
+    foot.appendChild(all);
+
+    el.blank.appendChild(foot);
+    fill(list);
+  }
+
+  function fill(list) {
+    list.textContent = "";
+
+    picks(SHOW_COMBOS).forEach(function (combo) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "start-combo";
+
+      combo[0].forEach(function (tag, i) {
+        if (i) {
+          var op = document.createElement("span");
+          op.className = "op";
+          op.textContent = "+";
+          b.appendChild(op);
+        }
+        var span = document.createElement("span");
+        span.textContent = tag;
+        b.appendChild(span);
+      });
+
+      var n = document.createElement("span");
+      n.className = "n";
+      n.textContent = combo[1];
+      b.appendChild(n);
+
+      b.addEventListener("click", function () {
+        include = [];
+        exclude = [];
+        combo[0].forEach(function (tag) {
+          var t = indexOfTag[tag];
+          if (t !== undefined && include.indexOf(t) === -1) include.push(t);
+        });
+        shown = page();
+        commit();
+      });
+
+      list.appendChild(b);
+    });
+  }
+
+  function picks(n) {
+    var pool = COMBOS.slice();
+    var out = [];
+    while (out.length < n && pool.length) {
+      out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    }
+    return out;
   }
 
   /* ---------- превью: тянем страницу поста и достаём из неё картинку ---------- */

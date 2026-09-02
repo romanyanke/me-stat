@@ -1,0 +1,284 @@
+<meta charset="utf-8">
+<title>Интересные комбинации</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;600&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+:root {
+  --ground: #eef0ec;
+  --surface: #f8faf7;
+  --surface-2: #e6e9e3;
+  --ink: #16191a;
+  --ink-2: #454f50;
+  --muted: #6d7876;
+  --line: #d2d7d0;
+  --line-strong: #b9c0b8;
+  --accent: #1c6360;
+  --accent-soft: #d8e6e3;
+  --accent-ink: #0e3f3d;
+  --signal: #a35f10;
+  --focus: #1c6360;
+
+  --step--1: 0.78rem;
+  --step-0: 0.94rem;
+  --step-1: 1.12rem;
+  --step-2: 1.5rem;
+
+  --sans: "Golos Text", "Helvetica Neue", Arial, sans-serif;
+  --slab: "Bitter", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #141817;
+    --surface: #1b201f;
+    --surface-2: #232928;
+    --ink: #e9ece9;
+    --ink-2: #b6c0bd;
+    --muted: #8b9794;
+    --line: #2f3735;
+    --line-strong: #414a48;
+    --accent: #6fc9c1;
+    --accent-soft: #1e3634;
+    --accent-ink: #b5e7e2;
+    --signal: #d9a154;
+    --focus: #6fc9c1;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground: #141817;
+  --surface: #1b201f;
+  --surface-2: #232928;
+  --ink: #e9ece9;
+  --ink-2: #b6c0bd;
+  --muted: #8b9794;
+  --line: #2f3735;
+  --line-strong: #414a48;
+  --accent: #6fc9c1;
+  --accent-soft: #1e3634;
+  --accent-ink: #b5e7e2;
+  --signal: #d9a154;
+  --focus: #6fc9c1;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 44px) clamp(16px, 4vw, 32px) 80px;
+}
+
+/* ---------- шапка ---------- */
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.masthead h1 {
+  font-family: var(--slab);
+  font-weight: 600;
+  font-size: var(--step-2);
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.masthead .corpus {
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.masthead .corpus b { color: var(--ink-2); font-weight: 500; }
+
+.lede {
+  max-width: 62ch;
+  margin: 18px 0 0;
+  color: var(--ink-2);
+}
+
+.lede code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--surface-2);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+/* ---------- оглавление ---------- */
+
+.jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jump a {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface);
+  text-decoration: none;
+  font-size: var(--step--1);
+}
+
+.jump a:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- борды ---------- */
+
+.board { margin-top: 44px; }
+
+.board h2 {
+  font-family: var(--slab);
+  font-size: var(--step-1);
+  font-weight: 600;
+  margin: 0;
+  scroll-margin-top: 16px;
+}
+
+.board .note {
+  max-width: 62ch;
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.board .found {
+  margin: 3px 0 0;
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.scroller {
+  overflow-x: auto;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--step-0);
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+  text-align: right;
+  font-weight: 600;
+  font-size: var(--step--1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 12px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+thead th:first-child { text-align: left; }
+
+tbody td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--accent-soft); }
+
+tbody td.combo {
+  text-align: left;
+  font-family: var(--sans);
+  font-size: var(--step-0);
+  color: var(--ink);
+  white-space: normal;
+}
+
+.combo a {
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.combo a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.combo .op { color: var(--muted); font-family: var(--mono); padding: 0 2px; }
+
+td.hits { color: var(--ink); font-weight: 500; }
+td.lift { color: var(--signal); }
+
+footer {
+  margin-top: 56px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-strong);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+footer a { text-decoration: underline; }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <h1>Интересные комбинации</h1>
+    <div class="corpus"><b>__POSTS__</b> постов · <b>__TAGS__</b> тегов · <a href="search.html">поиск по тегам</a></div>
+  </header>
+
+  <p class="lede">
+    Самое многочисленное сочетание — не самое интересное: наверху списка по частоте стоят
+    «Грузия + Тбилиси» и «Гоа + Индия 2», то есть одно место, названное дважды. Поэтому
+    считается ещё две величины. <b>Чаще случайного</b> — во сколько раз пара встречается
+    чаще, чем если бы теги ставились независимо друг от друга. <b>Вложенность</b> — какую
+    долю жизни тега занимает пара: у синонимов она близка к единице, и такие пары из
+    находок убраны. Любая строка ведёт в поиск, к готовой выборке.
+  </p>
+
+  <ul class="jump">__JUMP__</ul>
+
+__BOARDS__
+
+  <footer>
+    Собрано скриптом <code>build-combos.mjs</code> из тегов блога
+    <a href="https://me.yanke.ru">me.yanke.ru</a>. Пороги — в <code>combos.mjs</code>.
+  </footer>
+</div>
