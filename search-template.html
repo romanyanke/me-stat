@@ -494,16 +494,24 @@ button {
   .frame:not(.ready)::after { animation: none; }
 }
 
-.frame iframe {
+.frame img {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 900px;
-  height: 900px;
-  border: 0;
-  transform-origin: 0 0;
-  transform: scale(var(--k, 0.21));
-  pointer-events: none;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.frame.no-thumb::before {
+  content: "нет превью";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: var(--step--1);
 }
 
 .frame .hit {
@@ -561,7 +569,7 @@ button {
     <div class="corpus"><b id="c-posts">0</b> постов · <b id="c-tags">0</b> тегов · me.yanke.ru</div>
   </header>
 
-  <p class="csp-note" id="csp-note" hidden>Превью выключены: CSP этой страницы не пропускает фреймы с me.yanke.ru. Список работает как обычно.</p>
+  <p class="csp-note" id="csp-note" hidden>Превью выключены: CSP этой страницы не пропускает запросы к me.yanke.ru. Список работает как обычно.</p>
 
   <div class="cols">
     <aside class="rail">
@@ -857,77 +865,197 @@ button {
 
     el.posts.className = "posts" + (view === "grid" ? " grid" : "");
     el.posts.appendChild(frag);
-    if (view === "grid") { fitFrames(); watchFrames(); }
+    if (view === "grid") watchFrames();
     el.more.hidden = matches.length <= shown;
     el.more.textContent = "Показать ещё " +
       Math.min(page(), matches.length - shown) + " из " + fmt(matches.length - shown);
   }
 
-  /* ---------- превью поста в айфрейме ---------- */
+  /* ---------- превью: тянем страницу поста и достаём из неё картинку ---------- */
+
+  // Айфрейм на страницу поста тащит тему, аналитику, рекламу и фото в 1280 px.
+  // Блог отдаёт CORS-заголовок, так что дешевле забрать HTML запросом и вынуть
+  // ссылку на вариант поменьше: одна картинка вместо всей обвязки.
+  //
+  // og:image — единственная надёжная привязка к фото самого поста: в разметке
+  // темы болтаются ещё аватар и миниатюры соседних постов, часть из них битые.
+  // В og:image лежит 1280 px (~240 КБ), поэтому у того же медиа-хэша ищем
+  // размер поменьше — у каждого свой хэш файла, из URL его не собрать.
+  var SIZES = ["s400x600", "s500x750", "s540x810"];
+  var OG_RE = /<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i;
+  var CACHE_PREFIX = "thumb:";
+  var MAX_PARALLEL = 4;
+  var NO_THUMB = "-";
+
+  var queue = [];
+  var inflight = {};
+  var running = 0;
+
+  function findThumb(html) {
+    var og = html.match(OG_RE);
+    if (!og) return null;
+
+    var full = og[1];
+    var cut = full.match(/^(https:\/\/[\w.-]*media\.tumblr\.com\/[^"'\s]+?\/)s\d+x\d+\//i);
+    if (cut) {
+      for (var i = 0; i < SIZES.length; i++) {
+        var re = new RegExp(quote(cut[1]) + SIZES[i] + '/[^"\'\\s]+?\\.(?:jpe?g|png|gifv?|webp)', 'i');
+        var small = html.match(re);
+        if (small) return small[0];
+      }
+    }
+    return full;
+  }
+
+  function quote(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function cached(id) {
+    try {
+      return window.localStorage.getItem(CACHE_PREFIX + id);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function remember(id, url) {
+    try {
+      window.localStorage.setItem(CACHE_PREFIX + id, url);
+    } catch (err) {
+      dropCache();
+    }
+  }
+
+  function dropCache() {
+    try {
+      Object.keys(window.localStorage)
+        .filter(function (k) { return k.indexOf(CACHE_PREFIX) === 0; })
+        .forEach(function (k) { window.localStorage.removeItem(k); });
+    } catch (err) { /* ничего не поделать */ }
+  }
 
   function makeFrame(p) {
+    var id = posts[p];
     var box = document.createElement("div");
     box.className = "frame";
-
-    var iframe = document.createElement("iframe");
-    iframe.loading = "lazy";
-    iframe.setAttribute("scrolling", "no");
-    iframe.setAttribute("tabindex", "-1");
-    iframe.setAttribute("aria-hidden", "true");
-    iframe.dataset.src = POST_URL + posts[p] + "#focus";
-    iframe.addEventListener("load", function () { box.classList.add("ready"); });
+    box.dataset.id = id;
 
     var hit = document.createElement("a");
     hit.className = "hit";
-    hit.href = POST_URL + posts[p];
+    hit.href = POST_URL + id;
     hit.target = "_blank";
     hit.rel = "noopener";
-    hit.textContent = posts[p];
+    hit.textContent = id;
 
-    box.appendChild(iframe);
     box.appendChild(hit);
+
+    var known = cached(id);
+    if (known) paint(box, known);
     return box;
   }
 
-  function fitFrames() {
-    var first = el.posts.querySelector(".frame");
-    if (!first) return;
-    var w = first.getBoundingClientRect().width;
-    if (w) el.posts.style.setProperty("--k", (w / 900).toFixed(4));
+  // Красим по id, а не по ссылке на элемент: пока идёт запрос, список могли
+  // перерисовать, и старая карточка уже никому не видна.
+  function paintAll(id, url) {
+    var boxes = el.posts.querySelectorAll('.frame[data-id="' + id + '"]');
+    for (var i = 0; i < boxes.length; i++) paint(boxes[i], url);
+  }
+
+  function paint(box, url) {
+    if (box.dataset.painted) return;
+    box.dataset.painted = "1";
+
+    if (url === NO_THUMB) {
+      box.classList.add("ready", "no-thumb");
+      return;
+    }
+
+    var img = document.createElement("img");
+    img.alt = "";
+    img.loading = "lazy";
+    img.decoding = "async";
+    // Слушатели до src: из кеша браузера load успевает выстрелить раньше.
+    img.addEventListener("load", function () { box.classList.add("ready"); });
+    img.addEventListener("error", function () { box.classList.add("ready", "no-thumb"); });
+    img.src = url;
+    if (img.complete && img.naturalWidth) box.classList.add("ready");
+    box.insertBefore(img, box.firstChild);
+  }
+
+  function enqueue(box) {
+    var id = box.dataset.id;
+    if (!id || box.dataset.painted) return;
+
+    var known = cached(id);
+    if (known) {
+      paint(box, known);
+      return;
+    }
+
+    if (inflight[id]) return;   // уже тянем — покрасится, когда придёт
+    inflight[id] = true;
+    queue.push(id);
+    pump();
+  }
+
+  function pump() {
+    while (running < MAX_PARALLEL && queue.length) {
+      running++;
+      grab(queue.shift());
+    }
+  }
+
+  function grab(id) {
+    window.fetch(POST_URL + id, { credentials: "omit" })
+      .then(function (res) { return res.ok ? res.text() : Promise.reject(res.status); })
+      .then(function (html) { return findThumb(html) || NO_THUMB; })
+      .catch(function () { return NO_THUMB; })
+      .then(function (url) {
+        remember(id, url);
+        delete inflight[id];
+        paintAll(id, url);
+        running--;
+        pump();
+      });
   }
 
   var seen = null;
 
+  // Страховка для движков, где IntersectionObserver молчит до первого касания.
+  var scrollTimer = 0;
+  window.addEventListener("scroll", function () {
+    if (!PREVIEWS || view !== "grid" || scrollTimer) return;
+    scrollTimer = window.setTimeout(function () {
+      scrollTimer = 0;
+      var boxes = el.posts.querySelectorAll(".frame:not([data-painted])");
+      var limit = window.innerHeight + 500;
+      for (var i = 0; i < boxes.length; i++) {
+        if (boxes[i].getBoundingClientRect().top < limit) enqueue(boxes[i]);
+      }
+    }, 150);
+  }, { passive: true });
+
   function watchFrames() {
     if (seen) seen.disconnect();
+    var boxes = el.posts.querySelectorAll(".frame");
     if (!("IntersectionObserver" in window)) {
-      el.posts.querySelectorAll("iframe[data-src]").forEach(load);
+      boxes.forEach(enqueue);
       return;
     }
+    // Первый экран запускаем сами: IntersectionObserver в некоторых движках
+    // не отдаёт начальное пересечение, пока страницу не тронут.
+    for (var i = 0; i < Math.min(9, boxes.length); i++) enqueue(boxes[i]);
+
     seen = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
-        var iframe = entry.target.querySelector("iframe[data-src]");
-        if (iframe) load(iframe);
         seen.unobserve(entry.target);
+        enqueue(entry.target);
       });
-    }, { rootMargin: "600px 0px" });
-    el.posts.querySelectorAll(".frame").forEach(function (box) { seen.observe(box); });
+    }, { rootMargin: "500px 0px" });
+    boxes.forEach(function (box) { seen.observe(box); });
   }
-
-  function load(iframe) {
-    iframe.src = iframe.dataset.src;
-    delete iframe.dataset.src;
-  }
-
-  var fitTimer = 0;
-  function refit() {
-    window.clearTimeout(fitTimer);
-    fitTimer = window.setTimeout(fitFrames, 120);
-  }
-
-  window.addEventListener("resize", refit);
-  if ("ResizeObserver" in window) new ResizeObserver(refit).observe(el.posts);
 
   function setView(next) {
     if (view === next || (next === "grid" && !PREVIEWS)) return;
@@ -941,10 +1069,11 @@ button {
 
   if (!PREVIEWS) document.querySelector(".view").hidden = true;
 
-  // Хост может запрещать фреймы (так делает CSP артефактов на claude.ai).
+  // Хост может запрещать внешние запросы (так делает CSP артефактов на claude.ai).
   // Тогда плитка бесполезна — уходим в список и говорим почему.
   document.addEventListener("securitypolicyviolation", function (ev) {
-    if (!PREVIEWS || ev.effectiveDirective.indexOf("frame-src") === -1) return;
+    var d = ev.effectiveDirective || ev.violatedDirective || "";
+    if (!PREVIEWS || (d.indexOf("frame-src") === -1 && d.indexOf("connect-src") === -1)) return;
     PREVIEWS = false;
     document.querySelector(".view").hidden = true;
     document.getElementById("csp-note").hidden = false;
