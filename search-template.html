@@ -1485,6 +1485,16 @@ button {
     render();
   });
 
+  // Страница открывается айфреймом на me.yanke.ru/tagged: сообщаем запрос
+  // родителю, чтобы он держал его в своём адресе.
+  var PARENT_ORIGIN = "https://me.yanke.ru";
+
+  window.addEventListener("hashchange", function () {
+    if (parent !== window) {
+      parent.postMessage({ hash: window.location.hash }, PARENT_ORIGIN);
+    }
+  });
+
   readHash();
   render();
 })();
