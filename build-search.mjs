@@ -2,7 +2,7 @@
  * Собирает самодостаточную HTML-страницу поиска по комбинациям тегов.
  *
  * Usage:
- *   node build-search.mjs [output.html] [--previews] [--combos-url <url>] [--artifact]
+ *   node build-search.mjs [output.html] [--previews] [--artifact]
  *
  * --previews включает плитку с превью постов. Работает только там, где нет
  * строгого CSP (gh-pages); в Artifact на claude.ai внешние запросы запрещены.
@@ -25,12 +25,7 @@ const args = process.argv.slice(2);
 const PREVIEWS = args.includes('--previews');
 const ARTIFACT = args.includes('--artifact');
 
-// Рядом с search.html на gh-pages лежит combos.html; сборке в другое место
-// (например в Artifact) нужен полный адрес.
-const urlAt = args.indexOf('--combos-url');
-const COMBOS_URL = urlAt === -1 ? 'combos.html' : args[urlAt + 1];
-const skip = urlAt === -1 ? -1 : urlAt + 1;   // значение флага — не путь к файлу
-const target = args.find((a, i) => !a.startsWith('--') && i !== skip);
+const target = args.find((a) => !a.startsWith('--'));
 const OUT = target
   ? resolve(target)
   : '/private/tmp/claude-501/-Users-romanyanke-localhost-me-stat/528fda0e-c5be-417c-acc3-caa7b7c6e50e/scratchpad/tag-search.html';
@@ -71,7 +66,6 @@ const combos = boards(load(), START_COMBOS)
 const html = readFileSync(TEMPLATE, 'utf8')
   .replace('__PREVIEWS__', String(PREVIEWS))
   .replace('__COMBOS__', () => JSON.stringify(combos))
-  .replace('__COMBOS_URL__', COMBOS_URL)
   .replace(
   '__DATA__',
   // </script> внутри данных сломал бы страницу; имён с таким текстом нет, но дёшево подстраховаться.

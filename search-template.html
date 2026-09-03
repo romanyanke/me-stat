@@ -199,6 +199,23 @@ button {
 
 .chip .kill:hover { color: var(--ink); }
 
+.reset {
+  align-self: flex-start;
+  padding: 5px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface-2);
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.reset:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.reset[hidden] { display: none; }
+
 .hint {
   font-size: var(--step--1);
   color: var(--muted);
@@ -338,13 +355,6 @@ button {
 }
 
 .post .open:hover { color: var(--accent); text-decoration: underline; }
-
-.all-combos {
-  color: var(--ink);
-  opacity: 0.8;
-}
-
-.all-combos:hover { color: var(--accent); opacity: 1; }
 
 .csp-note {
   margin: 14px 0 0;
@@ -657,6 +667,7 @@ button {
           <div class="suggest" id="suggest" role="listbox"></div>
         </div>
         <div class="chips" id="chips"></div>
+        <button type="button" class="reset" id="reset" hidden>Сбросить теги</button>
         <p class="hint">Теги складываются через И. Клик по тегу — искать посты без него.</p>
       </div>
 
@@ -688,7 +699,6 @@ button {
 
   var DATA = __DATA__;
   var COMBOS = __COMBOS__;   // неожиданные пары для пустого экрана
-  var COMBOS_URL = "__COMBOS_URL__";
   var POST_URL = "https://me.yanke.ru/post/";
   function page() { return PAGE_OF[view]; }
 
@@ -743,6 +753,7 @@ button {
     formula: document.getElementById("formula"),
     more: document.getElementById("more"),
     blank: document.getElementById("blank"),
+    reset: document.getElementById("reset"),
     vGrid: document.getElementById("v-grid"),
     vList: document.getElementById("v-list")
   };
@@ -854,6 +865,7 @@ button {
 
   function renderChips() {
     el.chips.textContent = "";
+    el.reset.hidden = !(include.length || exclude.length);
     var all = include.map(function (t) { return [t, false]; })
       .concat(exclude.map(function (t) { return [t, true]; }));
 
@@ -976,14 +988,6 @@ button {
     more.textContent = "Другие сочетания";
     more.addEventListener("click", function () { fill(list); });
     foot.appendChild(more);
-
-    var all = document.createElement("a");
-    all.href = COMBOS_URL;
-    all.className = "all-combos";
-    all.target = "_blank";
-    all.rel = "noopener";
-    all.textContent = "Все интересные комбинации";
-    foot.appendChild(all);
 
     el.blank.appendChild(foot);
     fill(list);
@@ -1424,6 +1428,15 @@ button {
       cursor = -1;
       renderSuggest();
     }, 120);
+  });
+
+  el.reset.addEventListener("click", function () {
+    include = [];
+    exclude = [];
+    shown = page();
+    el.q.value = "";
+    commit();
+    el.q.focus();
   });
 
   el.more.addEventListener("click", function () {
