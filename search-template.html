@@ -1,77 +1,41 @@
 <meta charset="utf-8">
 <title>Пересечения тегов</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;600&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 
 <style>
+/* Страница живёт в айфрейме на me.yanke.ru/tagged, поэтому тема одна — тёмная,
+   ровно та же: фон #1c1c1c, белый текст, жёлтый #ffa на наведении. */
 :root {
-  --ground: #eef0ec;
-  --surface: #f8faf7;
-  --surface-2: #e6e9e3;
-  --ink: #16191a;
-  --ink-2: #454f50;
-  --muted: #6d7876;
-  --line: #d2d7d0;
-  --line-strong: #b9c0b8;
-  --accent: #1c6360;
-  --accent-soft: #d8e6e3;
-  --accent-ink: #0e3f3d;
-  --negate: #97341f;
-  --negate-soft: #f0dcd6;
-  --signal: #a35f10;
-  --focus: #1c6360;
+  color-scheme: dark;
 
-  --step--1: 0.78rem;
-  --step-0: 0.94rem;
-  --step-1: 1.12rem;
-  --step-2: 1.5rem;
-  --step-3: 2.3rem;
+  --ground: #1c1c1c;
+  --surface: #242424;
+  --surface-2: #2e2e2e;
+  --ink: #fff;
+  --ink-2: rgba(255, 255, 255, 0.78);
+  --muted: rgba(255, 255, 255, 0.5);
+  --line: rgba(255, 255, 255, 0.14);
+  --line-strong: rgba(255, 255, 255, 0.28);
+  --accent: #ffa;
+  --accent-soft: rgba(255, 255, 170, 0.13);
+  --accent-ink: #ffa;
+  --negate: #f0917a;
+  --negate-soft: rgba(240, 145, 122, 0.14);
+  --signal: #ffa;
+  --focus: #ffa;
 
-  --sans: "Golos Text", "Helvetica Neue", Arial, sans-serif;
-  --slab: "Bitter", Georgia, "Times New Roman", serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-}
+  --step--1: 0.8rem;
+  --step-0: 0.95rem;
+  --step-1: 1.1rem;
+  --step-2: 1.4rem;
+  --step-3: 2.1rem;
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ground: #141817;
-    --surface: #1b201f;
-    --surface-2: #232928;
-    --ink: #e9ece9;
-    --ink-2: #b6c0bd;
-    --muted: #8b9794;
-    --line: #2f3735;
-    --line-strong: #414a48;
-    --accent: #6fc9c1;
-    --accent-soft: #1e3634;
-    --accent-ink: #b5e7e2;
-    --negate: #e08a72;
-    --negate-soft: #3a221c;
-    --signal: #d9a154;
-    --focus: #6fc9c1;
-  }
-}
-
-:root[data-theme="dark"] {
-  --ground: #141817;
-  --surface: #1b201f;
-  --surface-2: #232928;
-  --ink: #e9ece9;
-  --ink-2: #b6c0bd;
-  --muted: #8b9794;
-  --line: #2f3735;
-  --line-strong: #414a48;
-  --accent: #6fc9c1;
-  --accent-soft: #1e3634;
-  --accent-ink: #b5e7e2;
-  --negate: #e08a72;
-  --negate-soft: #3a221c;
-  --signal: #d9a154;
-  --focus: #6fc9c1;
+  --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 * { box-sizing: border-box; }
+
+html { background: var(--ground); }
 
 body {
   margin: 0;
@@ -80,6 +44,7 @@ body {
   font-family: var(--sans);
   font-size: var(--step-0);
   line-height: 1.5;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -102,65 +67,24 @@ button {
 .wrap {
   max-width: 1180px;
   margin: 0 auto;
-  padding: clamp(20px, 4vw, 44px) clamp(16px, 4vw, 32px) 80px;
-}
-
-/* ---------- head ---------- */
-
-.masthead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px 18px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line-strong);
-}
-
-.masthead h1 {
-  font-family: var(--slab);
-  font-weight: 600;
-  font-size: var(--step-2);
-  letter-spacing: -0.01em;
-  margin: 0;
-  text-wrap: balance;
-}
-
-.masthead .corpus {
-  font-family: var(--mono);
-  font-size: var(--step--1);
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.masthead .corpus b {
-  color: var(--ink-2);
-  font-weight: 500;
+  padding: 18px clamp(14px, 3vw, 28px) 48px;
 }
 
 /* ---------- layout ---------- */
 
 .cols {
   display: grid;
-  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
-  gap: clamp(20px, 3vw, 40px);
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: clamp(18px, 3vw, 40px);
   align-items: start;
-  margin-top: 26px;
-}
-
-@media (max-width: 820px) {
-  .cols { grid-template-columns: minmax(0, 1fr); }
 }
 
 .rail {
   position: sticky;
-  top: 20px;
+  top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-}
-
-@media (max-width: 820px) {
-  .rail { position: static; }
+  gap: 16px;
 }
 
 /* ---------- query box ---------- */
@@ -415,6 +339,13 @@ button {
 
 .post .open:hover { color: var(--accent); text-decoration: underline; }
 
+.all-combos {
+  color: var(--ink);
+  opacity: 0.8;
+}
+
+.all-combos:hover { color: var(--accent); opacity: 1; }
+
 .csp-note {
   margin: 14px 0 0;
   padding: 9px 12px;
@@ -613,8 +544,6 @@ button {
 
 .reshuffle:hover { border-color: var(--accent); color: var(--accent); }
 
-.all-combos { color: var(--accent); }
-
 .blank {
   padding: 34px 0;
   color: var(--muted);
@@ -624,14 +553,99 @@ button {
 .blank b { color: var(--ink-2); font-weight: 500; }
 
 .results { display: flex; flex-direction: column; }
+
+/* ---------- узкий экран ---------- */
+
+/* Узкий экран: поле поиска сверху, сразу под ним результаты, а подсказки
+   уезжают вниз — иначе высокий список тегов отталкивает выдачу за экран.
+   display:contents распускает колонку, чтобы её части можно было переставить. */
+@media (max-width: 860px) {
+  .cols {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .rail {
+    position: static;
+    display: contents;
+  }
+
+  .query { order: 1; }
+  .panel { order: 2; }
+  .results { order: 3; }
+
+  /* Список соседних тегов — главный способ нащупать сочетание, поэтому он
+     остаётся под поиском, но становится лентой на один смах, а не колонкой
+     в пол-экрана. */
+  .panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .panel > h2 { padding: 8px 12px; }
+
+  .neighbors {
+    flex-direction: row;
+    min-width: 0;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 6px;
+    padding: 8px;
+    overscroll-behavior-x: contain;
+  }
+
+  .neighbor {
+    flex: 0 0 auto;
+    gap: 6px;
+    border: 1px solid var(--line-strong);
+  }
+
+  .neighbor .name { white-space: nowrap; }
+}
+
+/* ---------- телефон ---------- */
+
+@media (max-width: 560px) {
+  .wrap { padding: 12px 12px 36px; }
+
+  .query { padding: 12px; }
+
+  /* Пальцем в «×» на чипе промахнуться легко — увеличиваем зоны нажатия. */
+  .chip { padding: 6px 4px 6px 10px; }
+  .chip .kill { padding: 2px 6px; font-size: 17px; }
+  .view button { padding: 7px 12px; }
+  .neighbor { padding: 8px 8px; }
+  .suggest button { padding: 10px 11px; }
+  .suggest { max-height: 52vh; }
+
+  .results-head {
+    align-items: center;
+    gap: 8px 12px;
+  }
+
+  .tally { font-size: 1.7rem; }
+
+  /* Формула запроса переносится на свою строку целиком. */
+  .formula {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .posts.grid {
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    gap: 14px 10px;
+  }
+
+  .post { padding: 10px 0; }
+  .start-combos { gap: 6px; }
+  .neighbors { max-height: 34vh; }
+}
 </style>
 
 <div class="wrap">
-  <header class="masthead">
-    <h1>Пересечения тегов</h1>
-    <div class="corpus"><b id="c-posts">0</b> постов · <b id="c-tags">0</b> тегов · me.yanke.ru</div>
-  </header>
-
   <p class="csp-note" id="csp-note" hidden>Превью выключены: CSP этой страницы не пропускает запросы к me.yanke.ru. Список работает как обычно.</p>
 
   <div class="cols">
@@ -643,7 +657,7 @@ button {
           <div class="suggest" id="suggest" role="listbox"></div>
         </div>
         <div class="chips" id="chips"></div>
-        <p class="hint">Теги складываются через И. Клик по тегу — переключить на «без него».</p>
+        <p class="hint">Теги складываются через И. Клик по тегу — искать посты без него.</p>
       </div>
 
       <section class="panel">
@@ -732,9 +746,6 @@ button {
     vGrid: document.getElementById("v-grid"),
     vList: document.getElementById("v-list")
   };
-
-  document.getElementById("c-posts").textContent = fmt(posts.length);
-  document.getElementById("c-tags").textContent = fmt(tags.length);
 
   function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
 
@@ -947,7 +958,7 @@ button {
     var intro = document.createElement("p");
     intro.className = "start-intro";
     intro.innerHTML = "Начните с любого тега — или возьмите готовое сочетание. " +
-      "Дальше список слева покажет, что встречается внутри выборки.";
+      "Дальше подсказки покажут, что встречается внутри выборки.";
     el.blank.appendChild(intro);
 
     if (!COMBOS.length) return;
@@ -969,6 +980,8 @@ button {
     var all = document.createElement("a");
     all.href = COMBOS_URL;
     all.className = "all-combos";
+    all.target = "_blank";
+    all.rel = "noopener";
     all.textContent = "Все интересные комбинации";
     foot.appendChild(all);
 

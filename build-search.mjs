@@ -2,10 +2,14 @@
  * Собирает самодостаточную HTML-страницу поиска по комбинациям тегов.
  *
  * Usage:
- *   node build-search.mjs [output.html] [--previews] [--combos-url <url>]
+ *   node build-search.mjs [output.html] [--previews] [--combos-url <url>] [--artifact]
  *
  * --previews включает плитку с превью постов. Работает только там, где нет
  * строгого CSP (gh-pages); в Artifact на claude.ai внешние запросы запрещены.
+ *
+ * --artifact отдаёт голый фрагмент: Artifact сам оборачивает файл в скелет с
+ * charset и viewport. Обычной странице этот скелет нужен свой, иначе телефон
+ * рисует её в 980 px, а без doctype браузер уходит в quirks mode.
  *
  * Источник: tmp/source.json ({tags: {имя: id}, posts: {postId: [id, ...]}}),
  * который генерится `ttags` (см. package.json).
@@ -19,6 +23,7 @@ const SOURCE = resolve(import.meta.dirname, 'tmp/source.json');
 const TEMPLATE = resolve(import.meta.dirname, 'search-template.html');
 const args = process.argv.slice(2);
 const PREVIEWS = args.includes('--previews');
+const ARTIFACT = args.includes('--artifact');
 
 // Рядом с search.html на gh-pages лежит combos.html; сборке в другое место
 // (например в Artifact) нужен полный адрес.
@@ -73,9 +78,15 @@ const html = readFileSync(TEMPLATE, 'utf8')
   () => JSON.stringify(data).replace(/</g, '\\u003c')
 );
 
-writeFileSync(OUT, html, 'utf8');
+const page = ARTIFACT
+  ? html
+  : '<!doctype html>\n<html lang="ru">\n' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
+    html;
 
-const kb = (html.length / 1024).toFixed(0);
+writeFileSync(OUT, page, 'utf8');
+
+const kb = (page.length / 1024).toFixed(0);
 console.log(`${OUT}`);
 console.log(
   `${data.posts.length} постов, ${data.tags.length} тегов, ${combos.length} комбинаций, ` +
