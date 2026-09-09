@@ -3,6 +3,7 @@
  *
  * Usage:
  *   TUMBLR_CONSUMER_KEY=... node build-thumbs.mjs [--all] [--out html/thumbs.js]
+ *                                                   [--max-requests 300]
  *
  * Раньше карточка сама забирала страницу поста и вынимала из неё og:image, но
  * Tumblr закрыл блог проверкой браузера: me.yanke.ru/post/<id> отдаёт 403 без
@@ -12,6 +13,11 @@
  * Ключ нужен только тут; в страницу он не попадает. Обход инкрементный: посты
  * идут от новых к старым, и на первой полностью известной странице скрипт
  * останавливается (--all обходит всё заново).
+ *
+ * У Tumblr лимит 1000 запросов в час на ключ, а ttags тратит из него около 300,
+ * поэтому за один прогон делается не больше --max-requests запросов. Холодный
+ * старт на 15 000 постов просто растянется на несколько прогонов: страница
+ * покажет «нет превью» там, где адрес ещё не собран.
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
@@ -28,6 +34,8 @@ const MIN_WIDTH = 500;        // карточка ~250 px, с запасом н�
 
 const args = process.argv.slice(2);
 const FULL = args.includes('--all');
+const capAt = args.indexOf('--max-requests');
+const MAX_REQUESTS = capAt === -1 ? 300 : Number(args[capAt + 1]);
 const outAt = args.indexOf('--out');
 const OUT = resolve(
   outAt === -1 ? resolve(import.meta.dirname, 'html/thumbs.js') : args[outAt + 1]
@@ -70,7 +78,15 @@ async function fetchPage(offset) {
     }
     if (!res.ok) throw new Error(`API ответил ${res.status} на offset ${offset}`);
 
-    const body = await res.json();
+    // Tumblr иногда отдаёт 200 с пустым телом; на этом падает и сам ttags.
+    const body = await res.json().catch(() => null);
+    if (!body || !body.response) {
+      if (attempt > 3) throw new Error(`пустой ответ API на offset ${offset}`);
+      console.error(`  пустой ответ, повтор через ${10 * attempt} с`);
+      await wait(10_000 * attempt);
+      continue;
+    }
+
     return body.response;
   }
 }
@@ -114,6 +130,11 @@ for (;;) {
 
   offset += PAGE;
   if (offset >= total) break;
+
+  if (requests >= MAX_REQUESTS) {
+    console.log(`  сделано ${requests} запросов — остальное в следующий прогон`);
+    break;
+  }
 
   if (requests % 25 === 0) console.log(`  ${offset} из ${total}, добавлено ${added}`);
   await wait(PAUSE);

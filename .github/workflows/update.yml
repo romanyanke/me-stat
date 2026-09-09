@@ -48,10 +48,17 @@ jobs:
           key: thumbs-${{ github.run_id }}
           restore-keys: thumbs-
 
+      # ttags — сторонний CLI без повторов: на пустом ответе Tumblr он падает
+      # с «Cannot read properties of null». Две попытки с паузой; больше нельзя,
+      # каждая тратит ~300 запросов из часового лимита в 1000.
       - name: Fetch tags from Tumblr
         env:
           TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
-        run: npx ttags
+        run: |
+          npx ttags && exit 0
+          echo "первая попытка не удалась, ждём 5 минут" >&2
+          sleep 300
+          npx ttags
 
       - name: Build pages
         env:
