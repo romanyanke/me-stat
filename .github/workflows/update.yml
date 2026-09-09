@@ -10,6 +10,10 @@ on:
     - cron: "0 23 * * *"
   workflow_dispatch:
     inputs:
+      posts:
+        description: "Обновить теги этих постов: id через пробел"
+        type: string
+        default: ""
       full:
         description: "Полный обход блога, а не только новые посты"
         type: boolean
@@ -55,7 +59,7 @@ jobs:
       # Дельту ttags считает по числу постов, а не по датам, поэтому
       # переразметку старых постов он не замечает. Ночью это и не нужно —
       # у старых постов теги не меняются; после правки тегов через retag.mjs
-      # прогон запускается руками с full=true.
+      # прогон запускается руками, с id этих постов или с full=true.
       - name: Drop tags cache for a full crawl
         if: inputs.full
         run: rm -f tmp/source.json
@@ -73,6 +77,20 @@ jobs:
       # ttags — сторонний CLI без повторов: на пустом ответе Tumblr он падает
       # с «Cannot read properties of null». Две попытки с паузой; больше нельзя,
       # каждая тратит ~300 запросов из часового лимита в 1000.
+      # Названные посты перечитываются точечно (то же, что npm run post),
+      # и только потом добираются новые.
+      - name: Refresh named posts
+        if: inputs.posts != ''
+        env:
+          TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+          POSTS: ${{ inputs.posts }}
+        run: |
+          echo "$POSTS" | grep -Eq '^[0-9][0-9 ]*$' || {
+            echo "posts: только id через пробел" >&2
+            exit 1
+          }
+          npx ttags post $POSTS
+
       - name: Fetch tags from Tumblr
         env:
           TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
