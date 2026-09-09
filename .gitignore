@@ -2,3 +2,6 @@ dist
 tmp
 ttags.js
 html/tags.js
+# в гите нужен только конфиг сервера предпросмотра; остальное личное
+.claude/*
+!.claude/launch.json

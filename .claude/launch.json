@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "autoPort": true,
+  "configurations": [
+    {
+      "name": "html",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "python3 -m http.server \"$PORT\" --directory html"
+      ],
+      "port": 8777
+    }
+  ]
+}
