@@ -952,7 +952,7 @@ button {
 
     el.posts.className = "posts" + (view === "grid" ? " grid" : "");
     el.posts.appendChild(frag);
-    if (view === "grid") watchFrames();
+    if (view === "grid") needThumbs();
     el.more.hidden = matches.length <= shown;
     el.more.textContent = "Показать ещё " +
       Math.min(page(), matches.length - shown) + " из " + fmt(matches.length - shown);
@@ -1042,68 +1042,49 @@ button {
     return out;
   }
 
-  /* ---------- превью: тянем страницу поста и достаём из неё картинку ---------- */
+  /* ---------- превью: адреса собраны на сборке ---------- */
 
-  // Айфрейм на страницу поста тащит тему, аналитику, рекламу и фото в 1280 px.
-  // Блог отдаёт CORS-заголовок, так что дешевле забрать HTML запросом и вынуть
-  // ссылку на вариант поменьше: одна картинка вместо всей обвязки.
-  //
-  // og:image — единственная надёжная привязка к фото самого поста: в разметке
-  // темы болтаются ещё аватар и миниатюры соседних постов, часть из них битые.
-  // В og:image лежит 1280 px (~240 КБ), поэтому у того же медиа-хэша ищем
-  // размер поменьше — у каждого свой хэш файла, из URL его не собрать.
-  var SIZES = ["s400x600", "s500x750", "s540x810"];
-  var OG_RE = /<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i;
-  var CACHE_PREFIX = "thumb:";
-  var MAX_PARALLEL = 4;
-  var NO_THUMB = "-";
+  // Tumblr закрыл блог проверкой браузера: me.yanke.ru/post/<id> отдаёт 403 без
+  // CORS-заголовков, так что вынимать og:image из страницы поста больше нельзя.
+  // Адреса собирает build-thumbs.mjs через API и складывает в отдельный файл —
+  // он грузится только при первом показе плитки, чтобы не тяжелить вход.
+  var THUMBS_URL = "thumbs.js";
+  var NO_THUMB = "-";         // пост есть, фотографии в нём нет
 
-  var queue = [];
-  var inflight = {};
-  var running = 0;
+  var thumbs = null;          // {postId: путь после base}
+  var thumbsBase = "";
+  var thumbsAsked = false;
 
-  function findThumb(html) {
-    var og = html.match(OG_RE);
-    if (!og) return null;
+  function needThumbs() {
+    if (thumbsAsked) return;
+    thumbsAsked = true;
 
-    var full = og[1];
-    var cut = full.match(/^(https:\/\/[\w.-]*media\.tumblr\.com\/[^"'\s]+?\/)s\d+x\d+\//i);
-    if (cut) {
-      for (var i = 0; i < SIZES.length; i++) {
-        var re = new RegExp(quote(cut[1]) + SIZES[i] + '/[^"\'\\s]+?\\.(?:jpe?g|png|gifv?|webp)', 'i');
-        var small = html.match(re);
-        if (small) return small[0];
+    var tag = document.createElement("script");
+    tag.src = THUMBS_URL;
+    tag.async = true;
+
+    tag.addEventListener("load", function () {
+      var data = window.meThumbs;
+      if (!data || !data.thumbs) {
+        stopPreviews("Превью не подключились: " + THUMBS_URL + " не содержит адресов. Список работает как обычно.");
+        return;
       }
-    }
-    return full;
+      thumbs = data.thumbs;
+      thumbsBase = data.base || "";
+      paintVisible();
+    });
+
+    tag.addEventListener("error", function () {
+      stopPreviews("Превью недоступны: рядом со страницей нет " + THUMBS_URL + ". Список работает как обычно.");
+    });
+
+    document.head.appendChild(tag);
   }
 
-  function quote(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
-  function cached(id) {
-    try {
-      return window.localStorage.getItem(CACHE_PREFIX + id);
-    } catch (err) {
-      return null;
-    }
-  }
-
-  function remember(id, url) {
-    try {
-      window.localStorage.setItem(CACHE_PREFIX + id, url);
-    } catch (err) {
-      dropCache();
-    }
-  }
-
-  function dropCache() {
-    try {
-      Object.keys(window.localStorage)
-        .filter(function (k) { return k.indexOf(CACHE_PREFIX) === 0; })
-        .forEach(function (k) { window.localStorage.removeItem(k); });
-    } catch (err) { /* ничего не поделать */ }
+  function thumbOf(id) {
+    if (!thumbs) return null;
+    var path = thumbs[id];
+    return path ? thumbsBase + path : NO_THUMB;
   }
 
   function makeFrame(p) {
@@ -1121,16 +1102,18 @@ button {
 
     box.appendChild(hit);
 
-    var known = cached(id);
-    if (known) paint(box, known);
+    var url = thumbOf(id);
+    if (url) paint(box, url);
     return box;
   }
 
-  // Красим по id, а не по ссылке на элемент: пока идёт запрос, список могли
-  // перерисовать, и старая карточка уже никому не видна.
-  function paintAll(id, url) {
-    var boxes = el.posts.querySelectorAll('.frame[data-id="' + id + '"]');
-    for (var i = 0; i < boxes.length; i++) paint(boxes[i], url);
+  // Файл мог доехать после отрисовки списка — тогда красим то, что на экране.
+  function paintVisible() {
+    var boxes = el.posts.querySelectorAll(".frame:not([data-painted])");
+    for (var i = 0; i < boxes.length; i++) {
+      var url = thumbOf(boxes[i].dataset.id);
+      if (url) paint(boxes[i], url);
+    }
   }
 
   function paint(box, url) {
@@ -1154,80 +1137,6 @@ button {
     box.insertBefore(img, box.firstChild);
   }
 
-  function enqueue(box) {
-    var id = box.dataset.id;
-    if (!id || box.dataset.painted) return;
-
-    var known = cached(id);
-    if (known) {
-      paint(box, known);
-      return;
-    }
-
-    if (inflight[id]) return;   // уже тянем — покрасится, когда придёт
-    inflight[id] = true;
-    queue.push(id);
-    pump();
-  }
-
-  function pump() {
-    while (running < MAX_PARALLEL && queue.length) {
-      running++;
-      grab(queue.shift());
-    }
-  }
-
-  function grab(id) {
-    window.fetch(POST_URL + id, { credentials: "omit" })
-      .then(function (res) { return res.ok ? res.text() : Promise.reject(res.status); })
-      .then(function (html) { return findThumb(html) || NO_THUMB; })
-      .catch(function () { return NO_THUMB; })
-      .then(function (url) {
-        remember(id, url);
-        delete inflight[id];
-        paintAll(id, url);
-        running--;
-        pump();
-      });
-  }
-
-  var seen = null;
-
-  // Страховка для движков, где IntersectionObserver молчит до первого касания.
-  var scrollTimer = 0;
-  window.addEventListener("scroll", function () {
-    if (!PREVIEWS || view !== "grid" || scrollTimer) return;
-    scrollTimer = window.setTimeout(function () {
-      scrollTimer = 0;
-      var boxes = el.posts.querySelectorAll(".frame:not([data-painted])");
-      var limit = window.innerHeight + 500;
-      for (var i = 0; i < boxes.length; i++) {
-        if (boxes[i].getBoundingClientRect().top < limit) enqueue(boxes[i]);
-      }
-    }, 150);
-  }, { passive: true });
-
-  function watchFrames() {
-    if (seen) seen.disconnect();
-    var boxes = el.posts.querySelectorAll(".frame");
-    if (!("IntersectionObserver" in window)) {
-      boxes.forEach(enqueue);
-      return;
-    }
-    // Первый экран запускаем сами: IntersectionObserver в некоторых движках
-    // не отдаёт начальное пересечение, пока страницу не тронут.
-    for (var i = 0; i < Math.min(9, boxes.length); i++) enqueue(boxes[i]);
-
-    seen = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        seen.unobserve(entry.target);
-        enqueue(entry.target);
-      });
-    }, { rootMargin: "500px 0px" });
-    boxes.forEach(function (box) { seen.observe(box); });
-  }
-
   function setView(next) {
     if (view === next || (next === "grid" && !PREVIEWS)) return;
     view = next;
@@ -1240,19 +1149,28 @@ button {
 
   if (!PREVIEWS) document.querySelector(".view").hidden = true;
 
-  // Хост может запрещать внешние запросы (так делает CSP артефактов на claude.ai).
-  // Тогда плитка бесполезна — уходим в список и говорим почему.
-  document.addEventListener("securitypolicyviolation", function (ev) {
-    var d = ev.effectiveDirective || ev.violatedDirective || "";
-    if (!PREVIEWS || (d.indexOf("frame-src") === -1 && d.indexOf("connect-src") === -1)) return;
+  function stopPreviews(why) {
+    if (!PREVIEWS) return;
     PREVIEWS = false;
     document.querySelector(".view").hidden = true;
-    document.getElementById("csp-note").hidden = false;
+
+    var note = document.getElementById("csp-note");
+    note.textContent = why;
+    note.hidden = false;
+
     if (view !== "list") {
       view = "list";
       shown = page();
       render();
     }
+  }
+
+  // Хост может запрещать внешние запросы (так делает CSP артефактов на claude.ai).
+  // Тогда плитка бесполезна — уходим в список и говорим почему.
+  document.addEventListener("securitypolicyviolation", function (ev) {
+    var d = ev.effectiveDirective || ev.violatedDirective || "";
+    if (!PREVIEWS || (d.indexOf("frame-src") === -1 && d.indexOf("connect-src") === -1)) return;
+    stopPreviews("Превью выключены: CSP этой страницы не пропускает запросы к me.yanke.ru. Список работает как обычно.");
   });
 
   el.vGrid.addEventListener("click", function () { setView("grid"); });
