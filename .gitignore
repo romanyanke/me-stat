@@ -1,8 +1,9 @@
 dist
 tmp
-ttags.js
+# всё в html генерируется сборкой; пустышка нужна, чтобы папка существовала
+html/*
+!html/.gitikeep
 .env
-html/tags.js
 # в гите нужен только конфиг сервера предпросмотра; остальное личное
 .claude/*
 !.claude/launch.json

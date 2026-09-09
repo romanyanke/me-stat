@@ -15,7 +15,7 @@ Tumblr API ──build-thumbs.mjs──▶ tmp/thumbs.json ──▶ html/thumbs
 
 - `tmp/source.json` — `{tags: {имя: id}, posts: {postId: [id тегов]}}`, полный слепок блога. Не в гите.
 - `dist/tags.json` — теги с количествами (только те, что встречаются больше одного раза). Не в гите.
-- `html/` — то, что уезжает на gh-pages.
+- `html/` — то, что уезжает на Pages. Тоже не в гите: собирается в Actions.
 
 ## Команды
 
@@ -97,31 +97,34 @@ node build-combos.mjs
 
 Топ-300 находок вшивается ещё и в `search.html` — на пустом экране поиска показывается дюжина сочетаний с кнопкой «другие». Ссылки с поиска на `combos.html` нет: страница комбинаций открывается сама по себе.
 
-### Выложить на gh-pages
+### Собрать всё сразу
 
 ```bash
-npm run deploy
+npm run build
 ```
 
-Публикует папку `html` → `https://romanyanke.github.io/me-stat/` (`tags.js`, `search.html`, `combos.html`, `thumbs.js`).
+Это `html` → `search` → `combos` → `thumbs`. Цепочка строгая: упал шаг — дальше не идём. Данные при этом не обновляются, для свежих тегов нужен `npm start`.
 
-### Всё сразу: данные, все страницы и деплой
+## Сборка и публикация
+
+Всё делает GitHub Actions — [.github/workflows/update.yml](.github/workflows/update.yml). Локально ничего собирать и коммитить не нужно: содержимое `html/` в гит не попадает, оно генерируется на стороне GitHub при каждом прогоне.
+
+Раз в сутки в 23:00 UTC (02:00 по Москве) workflow берёт свежие теги через `ttags`, собирает все четыре файла и публикует папку `html` на Pages через `upload-pages-artifact` и `deploy-pages`. Адрес не меняется: `https://romanyanke.github.io/me-stat/`.
+
+Запустить руками и посмотреть, как идёт:
 
 ```bash
-npm run update
+gh workflow run update.yml && sleep 5 && gh run watch
 ```
 
-Это `ttags` (свежий `tmp/source.json`) → `npm run build` (облако, поиск, комбинации, превью) → `npm run deploy`. Цепочка строгая: если какой-то шаг упал, деплоя не будет и на gh-pages останется прошлая версия. Отдельные шаги: `npm run html`, `npm run search`, `npm run combos`, `npm run thumbs`.
+Что нужно один раз на стороне GitHub:
 
-### По расписанию
+- секрет `TUMBLR_CONSUMER_KEY` — `gh secret set TUMBLR_CONSUMER_KEY --repo romanyanke/me-stat`;
+- источник Pages переключён на Actions — `gh api -X PUT repos/romanyanke/me-stat/pages -f build_type=workflow`.
 
-`run.sh` — точка входа для крона: находит node и npm, читает `.env`, проверяет ключ, `ttags.js` и git-идентичность, потом запускает `npm run update`.
+Адреса превью между прогонами лежат в кеше Actions (`tmp/thumbs.json`), поэтому ночью `build-thumbs.mjs` доходит до первой известной страницы и останавливается. Кеш вытесняется после недели простоя — тогда следующий прогон обойдёт блог целиком, это лишние пара минут.
 
-```
-0 2 * * * /home/romanyanke/me-stat/run.sh 1> /home/romanyanke/stat-log.txt 2> /home/romanyanke/stat-err.txt
-```
-
-У крона нет ssh-агента, а `gh-pages` пушит в `origin` по ssh — на сервере нужен ключ без пароля. `ttags.js` и `.env` в гит не попадают, их надо создать рядом со скриптом.
+Запланированные workflow у публичных репозиториев GitHub отключает после 60 дней без активности в репозитории; приходит письмо, включается кнопкой.
 
 ## Служебные скрипты
 

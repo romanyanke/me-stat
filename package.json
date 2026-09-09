@@ -11,12 +11,9 @@
     "combos": "node build-combos.mjs",
     "thumbs": "node build-thumbs.mjs",
     "build": "npm run html && npm run search && npm run combos && npm run thumbs",
-    "deploy": "gh-pages -d html",
-    "update": "ttags && npm run build && npm run deploy",
     "vision": "node vision-tags.mjs"
   },
   "devDependencies": {
-    "gh-pages": "^3.1.0",
     "tumblr-tags": "^1.0.2"
   },
   "keywords": [],

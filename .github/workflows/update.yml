@@ -1,0 +1,66 @@
+name: update
+
+# Каждую ночь: свежие теги из Tumblr, пересборка всех страниц, публикация на
+# GitHub Pages. Раньше это делал крон на домашнем сервере.
+on:
+  schedule:
+    # 23:00 UTC — это 02:00 по Москве. GitHub может задержать запуск на
+    # десятки минут, если в эту минуту очередь загружена; для ночной сборки
+    # это не имеет значения.
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+
+# Публикация в Pages не терпит параллельных заездов, но и обрывать начатую
+# сборку на полпути незачем — ручной запуск просто дождётся своей очереди.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Адреса превью копятся между прогонами: с этим кешем build-thumbs.mjs
+      # доходит до первой уже известной страницы и останавливается, без него
+      # обходит весь блог заново (~750 запросов к API).
+      - name: Restore thumbs cache
+        uses: actions/cache@v4
+        with:
+          path: tmp/thumbs.json
+          key: thumbs-${{ github.run_id }}
+          restore-keys: thumbs-
+
+      - name: Fetch tags from Tumblr
+        env:
+          TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+        run: npx ttags
+
+      - name: Build pages
+        env:
+          TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: html
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
