@@ -105,11 +105,23 @@ npm run deploy
 
 Публикует папку `html` → `https://romanyanke.github.io/me-stat/` (`tags.js`, `search.html`, `combos.html`, `thumbs.js`).
 
-### Всё сразу: данные + облако + деплой
+### Всё сразу: данные, все страницы и деплой
 
 ```bash
 npm run update
 ```
+
+Это `ttags` (свежий `tmp/source.json`) → `npm run build` (облако, поиск, комбинации, превью) → `npm run deploy`. Цепочка строгая: если какой-то шаг упал, деплоя не будет и на gh-pages останется прошлая версия. Отдельные шаги: `npm run html`, `npm run search`, `npm run combos`, `npm run thumbs`.
+
+### По расписанию
+
+`run.sh` — точка входа для крона: находит node и npm, читает `.env`, проверяет ключ, `ttags.js` и git-идентичность, потом запускает `npm run update`.
+
+```
+0 2 * * * /home/romanyanke/me-stat/run.sh 1> /home/romanyanke/stat-log.txt 2> /home/romanyanke/stat-err.txt
+```
+
+У крона нет ssh-агента, а `gh-pages` пушит в `origin` по ssh — на сервере нужен ключ без пароля. `ttags.js` и `.env` в гит не попадают, их надо создать рядом со скриптом.
 
 ## Служебные скрипты
 

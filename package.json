@@ -6,9 +6,13 @@
   "scripts": {
     "start": "ttags && npm run html",
     "post": "ttags post",
-    "deploy": "gh-pages -d html",
     "html": "node ./index.js",
-    "update": "npm start && npm run deploy",
+    "search": "node build-search.mjs html/search.html --previews",
+    "combos": "node build-combos.mjs",
+    "thumbs": "node build-thumbs.mjs",
+    "build": "npm run html && npm run search && npm run combos && npm run thumbs",
+    "deploy": "gh-pages -d html",
+    "update": "ttags && npm run build && npm run deploy",
     "vision": "node vision-tags.mjs"
   },
   "devDependencies": {
