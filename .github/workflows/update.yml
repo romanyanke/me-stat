@@ -38,9 +38,9 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -50,7 +50,7 @@ jobs:
       # Свой кеш ttags держит в tmp/source.json и по нему считает, сколько
       # постов доспросить: без кеша это 302 запроса каждую ночь, с ним — один.
       - name: Restore tags cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: tmp/source.json
           key: source-${{ github.run_id }}
@@ -68,7 +68,7 @@ jobs:
       # доходит до первой уже известной страницы и останавливается, без него
       # обходит весь блог заново (~750 запросов к API).
       - name: Restore thumbs cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: tmp/thumbs.json
           key: thumbs-${{ github.run_id }}
@@ -105,9 +105,9 @@ jobs:
           TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
         run: npm run build
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: html
 
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
