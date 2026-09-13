@@ -11,10 +11,12 @@
     "combos": "node build-combos.mjs",
     "thumbs": "node build-thumbs.mjs",
     "build": "npm run html && npm run search && npm run combos && npm run thumbs",
-    "vision": "node vision-tags.mjs"
+    "vision": "node vision-tags.mjs",
+    "cleanup": "node cleanup-tags.mjs"
   },
   "devDependencies": {
-    "tumblr-tags": "^1.0.2"
+    "tumblr-tags": "2.0.0-rc.1",
+    "tumblr.js": "^3.0.0"
   },
   "keywords": [],
   "author": "",

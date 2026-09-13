@@ -5,9 +5,9 @@
  * Requires env: TUMBLR_CONSUMER_KEY, TUMBLR_CONSUMER_SECRET, TUMBLR_TOKEN, TUMBLR_TOKEN_SECRET, TUMBLR_BLOG
  */
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const tumblr = require('tumblr.js');
+// Свой прямой devDependency: до 2.0 tumblr.js прилетал сюда транзитивно,
+// вместе с tumblr-tags, а теперь у того зависимостей нет вовсе.
+import tumblr from 'tumblr.js';
 
 const {
   TUMBLR_CONSUMER_KEY,

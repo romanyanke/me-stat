@@ -15,6 +15,7 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
+import { postTags } from 'tumblr-tags';
 
 const ROOT = import.meta.dirname;
 const TMP = resolve(ROOT, 'tmp');
@@ -64,9 +65,7 @@ function readSource() {
 
 // Тегов мало — значит, посту есть куда расти. Такие и берём для теста.
 function pickUndertagged(source, limit) {
-  const pool = Object.entries(source.posts)
-    .filter(([, tagIds]) => tagIds.length <= 1)
-    .map(([id]) => id);
+  const pool = source.posts.filter((post) => post.tags.length <= 1).map((post) => post.id);
 
   const out = [];
   const seen = new Set();
@@ -292,10 +291,7 @@ async function matchVocabulary(objects, vocabulary, tagNames) {
 /* ---------- прогон ---------- */
 
 function tagNamesOf(source, postId) {
-  const byId = source
-    ? Object.fromEntries(Object.entries(source.tags).map(([name, id]) => [id, name]))
-    : {};
-  return (source?.posts?.[postId] ?? []).map((id) => byId[id]).filter(Boolean);
+  return source ? (postTags(source, postId) ?? []) : [];
 }
 
 async function main() {
@@ -314,7 +310,7 @@ async function main() {
     console.log(`Взял ${postIds.length} недотегированных постов: ${postIds.join(' ')}\n`);
   }
 
-  const tagNames = source ? Object.keys(source.tags) : [];
+  const tagNames = source ? source.tags : [];
   const useVocabulary = !opts.freeOnly && tagNames.length > 0;
   const vocabulary = useVocabulary ? await tagEmbeddings(tagNames) : null;
 

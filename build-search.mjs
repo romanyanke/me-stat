@@ -11,8 +11,8 @@
  * charset и viewport. Обычной странице этот скелет нужен свой, иначе телефон
  * рисует её в 980 px, а без doctype браузер уходит в quirks mode.
  *
- * Источник: tmp/source.json ({tags: {имя: id}, posts: {postId: [id, ...]}}),
- * который генерится `ttags` (см. package.json).
+ * Источник: снапшот tmp/source.json (schema 2) от `ttags` — теги плотным
+ * массивом имён, посты по порядку, новые сверху.
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -30,30 +30,14 @@ const OUT = target
   ? resolve(target)
   : '/private/tmp/claude-501/-Users-romanyanke-localhost-me-stat/528fda0e-c5be-417c-acc3-caa7b7c6e50e/scratchpad/tag-search.html';
 
-const { tags, posts } = JSON.parse(readFileSync(SOURCE, 'utf8'));
+const snapshot = JSON.parse(readFileSync(SOURCE, 'utf8'));
 
-// Посты: новые сверху. Id разной длины (12 и 18 знаков) — сравниваем как числа.
-const postIds = Object.keys(posts).sort((a, b) =>
-  a.length !== b.length ? b.length - a.length : b.localeCompare(a)
-);
-
-// Оставляем только теги, которые реально встречаются в постах (как cleanup-tags.mjs).
-const used = new Set(postIds.flatMap((id) => posts[id]));
-const names = Object.entries(tags)
-  .filter(([, id]) => used.has(id))
-  .sort(([a], [b]) => a.localeCompare(b, 'ru'));
-
-// Перенумеровываем разреженные id тегов в плотные индексы массива.
-const idToIndex = new Map(names.map(([, id], index) => [id, index]));
-
-const postTags = postIds.map((id) =>
-  posts[id].map((tagId) => idToIndex.get(tagId)).filter((i) => i !== undefined)
-);
-
+// Снапшот уже в нужной форме: порядок постов и плотные номера тегов —
+// часть его формата, пересортировывать и перенумеровывать нечего.
 const data = {
-  tags: names.map(([name]) => name),
-  posts: postIds,
-  postTags,
+  tags: snapshot.tags,
+  posts: snapshot.posts.map((post) => post.id),
+  postTags: snapshot.posts.map((post) => post.tags),
 };
 
 // Подборка для пустого экрана: [[имена тегов], сколько постов]. Полный список

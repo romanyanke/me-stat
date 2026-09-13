@@ -1,5 +1,5 @@
 /**
- * Расчёт интересных комбинаций тегов по tmp/source.json.
+ * Расчёт интересных комбинаций тегов по снапшоту tmp/source.json (schema 2).
  *
  * Сортировка по частоте бесполезна: наверху оказываются «Грузия + Тбилиси» и
  * «Таиланд + Пхукет» — одно и то же место, названное дважды. Находки от мусора
@@ -28,12 +28,12 @@ export const TRIPLE_MIN = 4;      // тройки редки, порог ниж�
 export const TRIPLE_DOM = 0.5;
 
 export function load() {
-  const { tags, posts } = JSON.parse(readFileSync(SOURCE, 'utf8'));
+  const { tags: name, posts } = JSON.parse(readFileSync(SOURCE, 'utf8'));
 
-  const name = {};
-  for (const [tag, id] of Object.entries(tags)) name[id] = tag;
-
-  const sets = Object.values(posts).map((ids) => [...new Set(ids)].sort((a, b) => a - b));
+  // Номер тега в снапшоте — это индекс в массиве имён, обратный словарь не нужен.
+  // Повторов внутри поста формат не допускает, так что остаётся только порядок:
+  // пары собираются по возрастанию номера, чтобы ключ «a|b» был один.
+  const sets = posts.map((post) => [...post.tags].sort((a, b) => a - b));
 
   const count = new Map();
   for (const ids of sets) {

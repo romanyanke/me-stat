@@ -1,0 +1,8 @@
+{
+  "blog": "me-yanke",
+  "snapshot": "tmp/source.json",
+  "out": "dist/tags.json",
+  "minCount": 2,
+  "pageSize": 50,
+  "maxRequests": 350
+}

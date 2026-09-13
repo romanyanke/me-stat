@@ -26,16 +26,13 @@ const normalizedByFirstLetter = tags.reduce((acc, tag) => {
   return acc
 },{})
 
-const sortByCount = Object.entries(normalizedByFirstLetter).reduce((acc, [letter, tags]) => {
-  acc[letter] = tags.sort(([,aCount], [,bCount]) => bCount - aCount)
-
-  return acc
-},{})
-
+// Внутри буквы теги идут по алфавиту — так их и рисует облако на me.yanke.ru.
+// Раньше тут считались два порядка сразу, но оба .sort() правили одни и те же
+// массивы на месте, поэтому сортировка по количеству ничего не значила.
 const sortByName = Object.entries(normalizedByFirstLetter).reduce((acc, [letter, tags]) => {
   acc[letter] = tags.sort(([aName], [bName]) => aName.localeCompare(bName))
 
   return acc
 },{})
 
-fs.writeFileSync('./html/tags.js', `var meStat=${JSON.stringify({totalTags,maxTagCount,minTagCount,tags:sortByCount})}`, 'utf-8')
+fs.writeFileSync('./html/tags.js', `var meStat=${JSON.stringify({totalTags,maxTagCount,minTagCount,tags:sortByName})}`, 'utf-8')
