@@ -15,7 +15,7 @@
     "cleanup": "node cleanup-tags.mjs"
   },
   "devDependencies": {
-    "tumblr-tags": "2.0.0-rc.1",
+    "tumblr-tags": "^2.0.0",
     "tumblr.js": "^3.0.0"
   },
   "keywords": [],
